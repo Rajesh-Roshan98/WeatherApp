@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react"; 
+import React, { useEffect, useState, useRef } from "react";
 import Navbar from "./NavBar";
 import TemperatureChart from "./TemperatureChart";
 import WeatherDetails from "./WeatherDetails";
@@ -12,14 +12,13 @@ const Weather = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fade, setFade] = useState(false);
-  const [displayCity, setDisplayCity] = useState(""); // Name shown in UI
-  const [coords, setCoords] = useState(null); // Store user's coordinates
+  const [displayCity, setDisplayCity] = useState("");
 
   const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 
-  // Fetch weather using city name or coordinates
-  const fetchWeather = async ({ city, useCoords = false }) => {
-    if (!city && !useCoords) return;
+  // --- Fetch weather by city or by coordinates ---
+  const fetchWeather = async ({ city = null, coords = null, displayName = null }) => {
+    if (!city && !coords) return;
     setLoading(true);
     setFade(false);
     setError(null);
@@ -27,10 +26,9 @@ const Weather = () => {
     try {
       let current, forecastData;
 
-      if (useCoords && coords) {
-        // Weather by coordinates
+      if (coords) {
+        // Fetch by coordinates
         const { lat, lon } = coords;
-
         const currentRes = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
         );
@@ -40,8 +38,10 @@ const Weather = () => {
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
         );
         forecastData = await forecastRes.json();
-      } else {
-        // Weather by city name
+
+        setDisplayCity(displayName || current.name);
+      } else if (city) {
+        // Fetch by city name
         const encodedCity = encodeURIComponent(city.trim());
 
         const currentRes = await fetch(
@@ -61,11 +61,12 @@ const Weather = () => {
           `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCity}&units=metric&appid=${API_KEY}`
         );
         forecastData = await forecastRes.json();
+
+        setDisplayCity(city);
       }
 
       setWeather(current);
       setForecast(forecastData.list);
-      setDisplayCity(inputRef.current.value || current.name);
       setError(null);
     } catch (err) {
       console.error(err);
@@ -77,39 +78,45 @@ const Weather = () => {
     }
   };
 
-  // On load: get user location
-  useEffect(() => {
+  // --- On page load: try geolocation ---
+  const fetchWeatherByLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
-          setCoords({ lat: latitude, lon: longitude });
 
-          // Reverse geocode for display name
           try {
+            // Reverse geocoding to get city name
             const geoRes = await fetch(
               `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
             );
             const geoData = await geoRes.json();
-            const cityName = geoData?.[0]?.name || "";
-            if (inputRef.current) inputRef.current.value = cityName;
-            setDisplayCity(cityName);
 
-            // Fetch weather using coordinates
-            fetchWeather({ useCoords: true });
-          } catch {
-            fetchWeather({ city: "Bhubaneswar" });
+            const userCity = geoData?.[0]?.name || "";
+            inputRef.current.value = userCity;
+
+            // Always fetch weather by coordinates to avoid "complex names" error
+            fetchWeather({
+              coords: { lat: latitude, lon: longitude },
+              displayName: userCity || "Your Location",
+            });
+          } catch (err) {
+            console.error("Geo lookup failed:", err);
+            fetchWeather({ city: "London" });
           }
         },
-        () => {
-          inputRef.current.value = "Bhubaneswar";
-          fetchWeather({ city: "Bhubaneswar" });
+        (err) => {
+          console.warn("Geolocation denied or failed", err);
+          fetchWeather({ city: "London" });
         }
       );
     } else {
-      inputRef.current.value = "Bhubaneswar";
-      fetchWeather({ city: "Bhubaneswar" });
+      fetchWeather({ city: "London" });
     }
+  };
+
+  useEffect(() => {
+    fetchWeatherByLocation();
   }, []);
 
   useEffect(() => {
@@ -123,31 +130,56 @@ const Weather = () => {
 
   return (
     <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white p-6">
-      <Navbar inputRef={inputRef} fetchWeather={fetchWeather} displayCity={displayCity} />
+      {/* Navbar */}
+      <Navbar
+        inputRef={inputRef}
+        fetchWeather={(city) => fetchWeather({ city })}
+        displayCity={displayCity}
+      />
 
+      {/* Loading & Error */}
       {loading && (
         <div className="flex justify-center items-center mt-10">
           <div className="w-12 h-12 border-4 border-t-4 border-t-blue-400 border-gray-600 rounded-full animate-spin"></div>
         </div>
       )}
-
       {error && (
         <div className="text-center mt-10 text-red-500 font-medium">{error}</div>
       )}
 
+      {/* Current Weather + Temperature Chart */}
       {weather && forecast.length > 0 && !loading && (
-        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 transition-opacity duration-700 ${fade ? "opacity-100" : "opacity-0"}`}>
-          <CurrentWeather weather={weather} forecast={forecast} cityName={displayCity} />
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 transition-opacity duration-700 ${
+            fade ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <CurrentWeather
+            weather={weather}
+            forecast={forecast}
+            cityName={displayCity}
+          />
           <TemperatureChart forecast={forecast} cityName={displayCity} />
         </div>
       )}
 
+      {/* Weather Details */}
       {weather && !loading && (
-        <WeatherDetails weather={weather} getWindDirection={getWindDirection} fade={fade} cityName={displayCity} />
+        <WeatherDetails
+          weather={weather}
+          getWindDirection={getWindDirection}
+          fade={fade}
+          cityName={displayCity}
+        />
       )}
 
+      {/* 5-Day Forecast */}
       {forecast.length > 0 && !loading && (
-        <DailyForecast dailyForecast={forecast} fade={fade} cityName={displayCity} />
+        <DailyForecast
+          dailyForecast={forecast}
+          fade={fade}
+          cityName={displayCity}
+        />
       )}
     </div>
   );
