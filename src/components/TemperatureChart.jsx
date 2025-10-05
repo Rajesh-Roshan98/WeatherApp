@@ -17,11 +17,11 @@ const TemperatureChart = ({ forecast, cityName }) => {
 
   return (
     <div
-      className="bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-xl p-6 transition duration-700"
+      className="bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-lg p-2 transition duration-700"
       style={{ transitionDelay: "200ms" }}
     >
-      <h3 className="text-2xl font-semibold mb-5 text-white text-center tracking-wide">
-        Today’s Temperature in {cityName}
+      <h3 className="text-xl font-semibold mb-3 text-white">
+        Today's Temperature Chart
       </h3>
 
       <ResponsiveContainer width="100%" height={240}>

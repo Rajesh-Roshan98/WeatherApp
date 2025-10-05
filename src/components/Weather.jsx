@@ -16,58 +16,80 @@ const Weather = () => {
 
   const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 
-  // --- Fetch weather by city or by coordinates ---
-  const fetchWeather = async ({ city = null, coords = null, displayName = null }) => {
-    if (!city && !coords) return;
+  // --- Helper to capitalize each word
+  const formatCityName = (name) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  // --- Fetch weather using coordinates
+  const fetchWeatherByCoords = async (lat, lon, displayName) => {
     setLoading(true);
     setFade(false);
     setError(null);
 
     try {
-      let current, forecastData;
+      const currentRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
+      );
+      const current = await currentRes.json();
 
-      if (coords) {
-        // Fetch by coordinates
-        const { lat, lon } = coords;
-        const currentRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-        );
-        current = await currentRes.json();
+      const forecastRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
+      );
+      const forecastData = await forecastRes.json();
 
-        const forecastRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-        );
-        forecastData = await forecastRes.json();
+      const formattedName = formatCityName(displayName || current.name);
+      setWeather(current);
+      setForecast(forecastData.list);
+      setDisplayCity(formattedName);
+      inputRef.current.value = formattedName;
+    } catch (err) {
+      console.error("Coordinate weather fetch failed:", err);
+      setWeather(null);
+      setForecast([]);
+      setError("Failed to fetch weather data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setDisplayCity(displayName || current.name);
-      } else if (city) {
-        // Fetch by city name
-        const encodedCity = encodeURIComponent(city.trim());
+  // --- Fetch weather by city (manual search)
+  const fetchWeatherByCity = async (city) => {
+    if (!city) return;
+    setLoading(true);
+    setFade(false);
+    setError(null);
 
-        const currentRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=${encodedCity}&units=metric&appid=${API_KEY}`
-        );
-        current = await currentRes.json();
+    const formattedCity = formatCityName(city);
 
-        if (current.cod !== 200) {
-          setWeather(null);
-          setForecast([]);
-          setError(`City not found: "${city}"`);
-          setLoading(false);
-          return;
-        }
+    try {
+      const encodedCity = encodeURIComponent(city.trim());
 
-        const forecastRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCity}&units=metric&appid=${API_KEY}`
-        );
-        forecastData = await forecastRes.json();
+      const currentRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodedCity}&units=metric&appid=${API_KEY}`
+      );
+      const current = await currentRes.json();
 
-        setDisplayCity(city);
+      if (current.cod !== 200) {
+        setWeather(null);
+        setForecast([]);
+        setError(`City not found: "${formattedCity}"`);
+        setLoading(false);
+        return;
       }
+
+      const forecastRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCity}&units=metric&appid=${API_KEY}`
+      );
+      const forecastData = await forecastRes.json();
 
       setWeather(current);
       setForecast(forecastData.list);
-      setError(null);
+      setDisplayCity(formattedCity);
+      inputRef.current.value = formattedCity;
     } catch (err) {
       console.error(err);
       setWeather(null);
@@ -78,45 +100,36 @@ const Weather = () => {
     }
   };
 
-  // --- On page load: try geolocation ---
-  const fetchWeatherByLocation = () => {
+  // --- Get user geolocation
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
 
           try {
-            // Reverse geocoding to get city name
+            // Reverse geocode only for display
             const geoRes = await fetch(
               `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
             );
             const geoData = await geoRes.json();
+            const displayName = geoData?.[0]?.name || "Your Location";
 
-            const userCity = geoData?.[0]?.name || "";
-            inputRef.current.value = userCity;
-
-            // Always fetch weather by coordinates to avoid "complex names" error
-            fetchWeather({
-              coords: { lat: latitude, lon: longitude },
-              displayName: userCity || "Your Location",
-            });
+            // Fetch weather by coordinates
+            fetchWeatherByCoords(latitude, longitude, displayName);
           } catch (err) {
-            console.error("Geo lookup failed:", err);
-            fetchWeather({ city: "London" });
+            console.error("Reverse geocode failed:", err);
+            fetchWeatherByCoords(latitude, longitude, "Your Location");
           }
         },
         (err) => {
           console.warn("Geolocation denied or failed", err);
-          fetchWeather({ city: "London" });
+          fetchWeatherByCity("London");
         }
       );
     } else {
-      fetchWeather({ city: "London" });
+      fetchWeatherByCity("London");
     }
-  };
-
-  useEffect(() => {
-    fetchWeatherByLocation();
   }, []);
 
   useEffect(() => {
@@ -130,40 +143,33 @@ const Weather = () => {
 
   return (
     <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white p-6">
-      {/* Navbar */}
       <Navbar
         inputRef={inputRef}
-        fetchWeather={(city) => fetchWeather({ city })}
+        fetchWeather={fetchWeatherByCity}
         displayCity={displayCity}
       />
 
-      {/* Loading & Error */}
       {loading && (
         <div className="flex justify-center items-center mt-10">
           <div className="w-12 h-12 border-4 border-t-4 border-t-blue-400 border-gray-600 rounded-full animate-spin"></div>
         </div>
       )}
+
       {error && (
         <div className="text-center mt-10 text-red-500 font-medium">{error}</div>
       )}
 
-      {/* Current Weather + Temperature Chart */}
       {weather && forecast.length > 0 && !loading && (
         <div
           className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 transition-opacity duration-700 ${
             fade ? "opacity-100" : "opacity-0"
           }`}
         >
-          <CurrentWeather
-            weather={weather}
-            forecast={forecast}
-            cityName={displayCity}
-          />
+          <CurrentWeather weather={weather} forecast={forecast} cityName={displayCity} />
           <TemperatureChart forecast={forecast} cityName={displayCity} />
         </div>
       )}
 
-      {/* Weather Details */}
       {weather && !loading && (
         <WeatherDetails
           weather={weather}
@@ -173,13 +179,8 @@ const Weather = () => {
         />
       )}
 
-      {/* 5-Day Forecast */}
       {forecast.length > 0 && !loading && (
-        <DailyForecast
-          dailyForecast={forecast}
-          fade={fade}
-          cityName={displayCity}
-        />
+        <DailyForecast dailyForecast={forecast} fade={fade} cityName={displayCity} />
       )}
     </div>
   );

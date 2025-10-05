@@ -9,7 +9,7 @@ const WeatherDetails = ({ weather, fade, getWindDirection, cityName }) => {
     >
       {/* City Name Heading */}
       <h3 className="text-2xl font-semibold text-center text-white mb-4">
-        Detailed Weather for {cityName}
+        Today's Weather Details
       </h3>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
