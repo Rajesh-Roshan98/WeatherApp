@@ -16,7 +16,6 @@ const Weather = () => {
 
   const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 
-  // --- Helper to capitalize each word
   const formatCityName = (name) => {
     return name
       .split(" ")
@@ -24,7 +23,6 @@ const Weather = () => {
       .join(" ");
   };
 
-  // --- Fetch weather using coordinates
   const fetchWeatherByCoords = async (lat, lon, displayName) => {
     setLoading(true);
     setFade(false);
@@ -56,7 +54,6 @@ const Weather = () => {
     }
   };
 
-  // --- Fetch weather by city (manual search)
   const fetchWeatherByCity = async (city) => {
     if (!city) return;
     setLoading(true);
@@ -100,7 +97,6 @@ const Weather = () => {
     }
   };
 
-  // --- Get user geolocation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -108,14 +104,11 @@ const Weather = () => {
           const { latitude, longitude } = pos.coords;
 
           try {
-            // Reverse geocode only for display
             const geoRes = await fetch(
               `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
             );
             const geoData = await geoRes.json();
             const displayName = geoData?.[0]?.name || "Your Location";
-
-            // Fetch weather by coordinates
             fetchWeatherByCoords(latitude, longitude, displayName);
           } catch (err) {
             console.error("Reverse geocode failed:", err);
@@ -149,39 +142,57 @@ const Weather = () => {
         displayCity={displayCity}
       />
 
-      {loading && (
-        <div className="flex justify-center items-center mt-10">
-          <div className="w-12 h-12 border-4 border-t-4 border-t-blue-400 border-gray-600 rounded-full animate-spin"></div>
-        </div>
-      )}
+      {/* ✅ Added padding top so content sits below fixed navbar */}
+      <div className="pt-18">
+        {loading && (
+          <div className="flex justify-center items-center mt-10">
+            <div className="w-12 h-12 border-4 border-t-4 border-t-blue-400 border-gray-600 rounded-full animate-spin"></div>
+          </div>
+        )}
 
-      {error && (
-        <div className="text-center mt-10 text-red-500 font-medium">{error}</div>
-      )}
+        {error && (
+          <div className="text-center mt-10 text-red-500 font-medium">
+            {error}
+          </div>
+        )}
 
-      {weather && forecast.length > 0 && !loading && (
-        <div
-          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 transition-opacity duration-700 ${
-            fade ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <CurrentWeather weather={weather} forecast={forecast} cityName={displayCity} />
-          <TemperatureChart forecast={forecast} cityName={displayCity} />
-        </div>
-      )}
+        {weather && forecast.length > 0 && !loading && (
+          <div
+            className={`grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6 mb-6 items-stretch transition-opacity duration-700 ${
+              fade ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="h-full">
+              <CurrentWeather
+                weather={weather}
+                forecast={forecast}
+                cityName={displayCity}
+              />
+            </div>
 
-      {weather && !loading && (
-        <WeatherDetails
-          weather={weather}
-          getWindDirection={getWindDirection}
-          fade={fade}
-          cityName={displayCity}
-        />
-      )}
+            <div className="h-full w-full">
+              <TemperatureChart forecast={forecast} cityName={displayCity} />
+            </div>
+          </div>
+        )}
 
-      {forecast.length > 0 && !loading && (
-        <DailyForecast dailyForecast={forecast} fade={fade} cityName={displayCity} />
-      )}
+        {weather && !loading && (
+          <WeatherDetails
+            weather={weather}
+            getWindDirection={getWindDirection}
+            fade={fade}
+            cityName={displayCity}
+          />
+        )}
+
+        {forecast.length > 0 && !loading && (
+          <DailyForecast
+            dailyForecast={forecast}
+            fade={fade}
+            cityName={displayCity}
+          />
+        )}
+      </div>
     </div>
   );
 };

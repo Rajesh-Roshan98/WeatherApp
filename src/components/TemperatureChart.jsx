@@ -20,7 +20,7 @@ const TemperatureChart = ({ forecast, cityName }) => {
       className="bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-lg p-2 transition duration-700"
       style={{ transitionDelay: "200ms" }}
     >
-      <h3 className="text-xl font-semibold mb-3 text-white">
+      <h3 className="text-xl font-semibold mb-3 text-white text-center">
         Today's Temperature Chart
       </h3>
 

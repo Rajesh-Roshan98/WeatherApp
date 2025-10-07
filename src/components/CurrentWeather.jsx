@@ -15,7 +15,7 @@ const CurrentWeather = ({ weather, forecast, cityName }) => {
       : weather.main.temp;
 
   return (
-    <div className="bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-lg p-6 max-w-xl w-full transition duration-700">
+    <div className="bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-lg p-8 max-w-md w-full transition duration-700">
       <h2 className="text-2xl font-semibold mb-4 text-white">
         {cityName}, {weather.sys.country}
       </h2>

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Droplets, Wind } from "lucide-react";
+import { ArrowDown, ArrowUp, Droplets, Wind, Cloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DailyForecast = ({ dailyForecast, fade, cityName }) => {
@@ -29,6 +29,7 @@ const DailyForecast = ({ dailyForecast, fade, cityName }) => {
         dayForecasts.length;
       const mid = Math.floor(dayForecasts.length / 2);
       const weather = dayForecasts[mid].weather[0];
+      const clouds = dayForecasts[mid].clouds; // added clouds
 
       return {
         date: new Date(dayForecasts[0].dt * 1000),
@@ -37,6 +38,7 @@ const DailyForecast = ({ dailyForecast, fade, cityName }) => {
         humidity: Math.round(humidity),
         wind: wind.toFixed(1),
         weather,
+        clouds,
       };
     });
 
@@ -94,13 +96,16 @@ const DailyForecast = ({ dailyForecast, fade, cityName }) => {
               ))}
             </div>
 
-            {/* Humidity & Wind */}
+            {/* Humidity & Wind & Clouds */}
             <div className="flex justify-center items-center gap-4 text-white text-sm">
               <span className="flex items-center gap-1">
                 <Droplets className="h-4 w-4 text-blue-500" /> {f.humidity}%
               </span>
               <span className="flex items-center gap-1">
                 <Wind className="h-4 w-4 text-blue-500" /> {f.wind} m/s
+              </span>
+              <span className="flex items-center gap-1">
+                <Cloud className="h-4 w-4 text-blue-500" /> {f.clouds.all}%
               </span>
             </div>
           </div>
