@@ -14,6 +14,16 @@ export const convertTemp = (tempC, unit = "C") => {
   return Math.round(tempC);
 };
 
+export const formatLocalTime = (utcSeconds, timezoneOffsetSeconds = 0, options = { hour: "2-digit", minute: "2-digit" }) => {
+  if (!utcSeconds) return "";
+  // Adjust UTC timestamp by the city's timezone offset in seconds
+  const localDate = new Date((utcSeconds + timezoneOffsetSeconds) * 1000);
+  return localDate.toLocaleTimeString("en-US", {
+    timeZone: "UTC",
+    ...options,
+  });
+};
+
 export const formatSpeed = (speedMs, unit = "C") => {
   if (unit === "F") {
     // mph

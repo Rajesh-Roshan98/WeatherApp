@@ -97,7 +97,8 @@ export const useLocationAutocomplete = () => {
   const fetchSuggestions = useCallback(async (searchTerm) => {
     const trimmed = searchTerm.trim();
 
-    if (!trimmed || trimmed.length === 0) {
+    // Do not call API for 1 or 2 letters (saves API quota and prevents unwanted fetches)
+    if (!trimmed || trimmed.length < 3) {
       setSuggestions([]);
       setLoading(false);
       setError(null);
@@ -173,11 +174,11 @@ export const useLocationAutocomplete = () => {
     }
   }, []);
 
-  // Debounced input handler (350ms)
+  // Debounced input handler (500ms calm debounce)
   useEffect(() => {
     setHighlightedIndex(-1);
 
-    if (!query || !query.trim()) {
+    if (!query || query.trim().length < 3) {
       setSuggestions([]);
       setLoading(false);
       return;
@@ -189,7 +190,7 @@ export const useLocationAutocomplete = () => {
 
     debounceTimerRef.current = setTimeout(() => {
       fetchSuggestions(query);
-    }, 350);
+    }, 500);
 
     return () => {
       if (debounceTimerRef.current) {

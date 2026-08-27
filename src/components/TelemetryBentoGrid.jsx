@@ -19,6 +19,7 @@ import {
   getPressureTelemetry,
   getVisibilityInfo,
   formatSpeed,
+  formatLocalTime,
   getWindDirection,
   getMoonPhase,
   getBeaufortScale,
@@ -28,7 +29,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 const CelestialCycleCard = ({ weather }) => {
-  const { sys = {}, dt } = weather;
+  const { sys = {}, dt, timezone = 0 } = weather;
   const now = dt || Math.floor(Date.now() / 1000);
   const sunrise = sys.sunrise || (now - 21600);
   const sunset = sys.sunset || (now + 21600);
@@ -40,14 +41,14 @@ const CelestialCycleCard = ({ weather }) => {
   const nightDuration = 86400 - dayDuration;
 
   const sunriseStr = sys.sunrise
-    ? new Date(sys.sunrise * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? formatLocalTime(sys.sunrise, timezone)
     : "06:00 AM";
   const sunsetStr = sys.sunset
-    ? new Date(sys.sunset * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? formatLocalTime(sys.sunset, timezone)
     : "06:30 PM";
 
-  const moonriseTime = new Date((sunset + 1800) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const moonsetTime = new Date((sunrise - 1800) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const moonriseTime = formatLocalTime(sunset + 1800, timezone);
+  const moonsetTime = formatLocalTime(sunrise - 1800, timezone);
 
   let stage = "midday";
   let progressPercent = 50;
