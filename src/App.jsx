@@ -3,10 +3,8 @@ import Weather from "./components/Weather";
 
 const App = () => {
   return (
-    <div className="min-h-screen w-full overflow-x-hidden overflow-y-auto bg-[#e2d4ff]">
-      <div className="flex justify-center items-center">
-        <Weather />
-      </div>
+    <div className="min-h-screen w-full bg-gray-950 text-slate-100 overflow-x-hidden selection:bg-sky-500/30 selection:text-sky-200">
+      <Weather />
     </div>
   );
 };
